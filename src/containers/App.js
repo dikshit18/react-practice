@@ -1,11 +1,17 @@
 import React, { Component } from "react";
 import "./App.css";
-import Person from "./Person/Person";
-import UserInput from "./UserInput/UserInput";
-import Validation from "./Validation/Validation";
-import Char from "./Char/Char";
+import Person from "../components/Persons/Person/Person";
+import UserInput from "../components/UserInput/UserInput";
+import Validation from "../components/Validation/Validation";
+import Char from "../components/Char/Char";
 import styled from "styled-components";
-
+import ErrorBoundary from "../components/ErrorBoundary/ErrorBoundary";
+import Persons from "../components/Persons/Persons";
+import Cockpit from "../components/Cockpit/Cockpit";
+import withClass from "./hoc/withClass";
+import Auxiliary from "./hoc/Auxiliary";
+import Practice from "../components/Practice/Practice";
+import AuthContext from "../context/auth-context";
 const StyledButton = styled.button`
   background-color: ${props => (props.alt ? "red" : "green")};
   font: inherit;
@@ -19,17 +25,22 @@ const StyledButton = styled.button`
 `;
 
 class App extends Component {
+  constructor(props) {
+    super(props);
+    console.log("[App.js] constructor");
+  }
+
   state = {
     persons: [
       {
         key: 101,
         name: "Max",
-        age: 28
+        age: "1"
       },
       {
         key: 102,
-        name: "Manu",
-        age: 29
+        name: "Dikshit",
+        age: "29"
       },
       {
         key: 104,
@@ -39,8 +50,12 @@ class App extends Component {
     ],
     showPersons: false,
     textLength: 0,
-    text: ""
+    text: "",
+    showCockpit: true,
+    changeCounter: 0,
+    authenticated: false
   };
+
   switchNameHandler = newName => {
     this.setState({
       persons: [
@@ -66,12 +81,28 @@ class App extends Component {
     person.name = event.target.value;
     const persons = [...this.state.persons];
     persons[personIndex] = person;
-    this.setState({ persons });
+    this.setState((prevState, props) => {
+      return { persons, changeCounter: prevState.changeCounter + 1 };
+    });
   };
 
   togglePersonsHandler = () => {
     this.setState({ showPersons: !this.state.showPersons });
   };
+  // componentWillMount = () => {
+  //   console.log("[App.js] componentWillMount");
+  // };
+
+  // componentDidMount() {
+  //   console.log("[App.js] componentDidMount");
+  // }
+  // componentDidUpdate() {
+  //   console.log("[App.js] componentDidUpdate");
+  // }
+  // shouldComponentUpdate() {
+  //   console.log("[App.js] shouldComponentUpdate");
+  //   return true;
+  // }
 
   deletePersonHandler = index => {
     let persons = this.state.persons.slice();
@@ -95,8 +126,18 @@ class App extends Component {
       text: event.target.value
     });
   };
+  displayCockpit = () => {
+    this.setState({
+      showCockpit: !this.state.showCockpit
+    });
+  };
+
+  loginHandler = () => {
+    this.setState({ authenticated: true });
+  };
 
   render() {
+    console.log("[App.js] render");
     const style = {
       backgroundColor: "green",
       font: "inherit",
@@ -109,15 +150,12 @@ class App extends Component {
     if (this.state.showPersons) {
       persons = (
         <div>
-          {this.state.persons.map((person, index) => {
-            return (
-              <Person
-                {...person}
-                changed={event => this.nameChangedHandler(event, person.key)}
-                click={() => this.deletePersonHandler(index)}
-              />
-            );
-          })}
+          <Persons
+            persons={this.state.persons}
+            clicked={this.deletePersonHandler}
+            changed={this.nameChangedHandler}
+            isAuthenticated={this.state.authenticated}
+          />
         </div>
       );
       style.backgroundColor = "red";
@@ -136,38 +174,31 @@ class App extends Component {
         );
       });
     }
-
-    const classes = [];
-    if (this.state.persons.length <= 2) {
-      classes.push("red");
-    }
-    if (this.state.persons.length <= 1) {
-      classes.push("bold");
-    }
-
     return (
-      <div className="App">
-        <h1>I am a React App !</h1>
-        <p className={classes.join(" ")}>This is really working.</p>
-
-        <StyledButton
-          alt={this.state.showPersons}
-          onClick={this.togglePersonsHandler}
+      <Auxiliary>
+        <button onClick={this.displayCockpit}>Show/Hide Cockpit </button>
+        <Practice text="Hello" />
+        <AuthContext.Provider
+          value={{
+            authenticated: this.state.authenticated,
+            login: this.loginHandler
+          }}
         >
-          Switch Name
-        </StyledButton>
-        {persons}
+          {this.state.showCockpit ? (
+            <Cockpit
+              alt={this.state.showPersons}
+              toggle={this.togglePersonsHandler}
+              personsLength={this.state.persons.length}
+            />
+          ) : null}
+          {persons}
+        </AuthContext.Provider>
         {/* <UserInput change={this.calculateLength} text={this.state.text} />
         <Validation textLength={this.state.textLength} />
         {chars} */}
-      </div>
+      </Auxiliary>
     );
-    // return React.createElement(
-    //   "div",
-    //   { className: "App" },
-    //   React.createElement("h1", null, "Hello World")
-    // );
   }
 }
 
-export default App;
+export default withClass(App, "App");
